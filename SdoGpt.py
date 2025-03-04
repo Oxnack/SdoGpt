@@ -3,12 +3,30 @@ import json
 from bs4 import BeautifulSoup
 
 gpt_url_POST = "https://vip.easychat.work/api/openai/v1/chat/completions" #https://beta.servergpts.com:2053/v1/chat/completions   https://vip.easychat.work/api/openai/v1/chat/completions
-sdo_url_GET = "https://sdo24.1580.ru/mod/quiz/attempt.php?attempt=78155&cmid=5303&mdlscrollto=728"
+
 q_number = "q81804"
 cmid = "5303"
 attempt="78155"
-sesskey="cOevSBvprj"
-cookie="_ym_uid=1734441442487198253; _ym_d=1734441442; MoodleSession=hfkunejgiilasc8e0ec7cl18ad; MOODLEID1_=sodium%3AGlOZOc232xTL0PNOqi02jBsrJcr2TJsBSn0U1Uf4DjXAG7tzTIPIA9WdHnfP33RdSfI%3D"
+sesskey="9MmElbD962"
+
+cookies = {
+    "_ym_uid": "1734441442487198253",
+    "_ym_d": "1734441442",
+    "MoodleSession": "4sbqup19ak6qv9ku69rb7q75sr",
+    "MOODLEID1_": "sodium%3AkA4QJ77a0Wuz%2B%2BLqh3DsbjaVDpufKojcfU%2FbV0hKblG5ccLsfi8ipXt8CHtDgtbPnIY%3D"
+}
+
+prompt = "Напиши код на python для решения задачи условие которой будет дальше (вместе с условием может быть очень много ненужной информации о кнопках на странице и тому подобном, читай только условие задачи), в ответ пришли чистый python код абсолютно без комментариев и в коде называй переменные просто как a, b, c, d и так далее"
+
+
+session = requests.Session()
+
+
+
+session.cookies.update(cookies)
+
+# response = session.post(url)
+
 
 def gpt_reqest(message:str ,url=gpt_url_POST, model="gpt-3.5-turbo"):
     data = {
@@ -36,51 +54,66 @@ def gpt_reqest(message:str ,url=gpt_url_POST, model="gpt-3.5-turbo"):
 
 ########################################################################################################
 
-def sdo_reqest_post(number, answer="oxnacks hack", q_number=q_number, cmid=cmid, attempt=attempt, sesskey=sesskey, fack_number=0):
-    url = f"https://sdo24.1580.ru/mod/quiz/processattempt.php?cmid={cmid}&{q_number}:{str(number)}_:flagged=0&{q_number}:{str(number)}_:sequencecheck={fack_number}&{q_number}:{str(number)}_answer={answer}&{q_number}:{str(number)}_-submit=1&attempt={attempt}&thispage={str(int(number)-1)}&nextpage={str(number)}&timeup=0&sesskey={sesskey}&mdlscrollto=360&slots={str(number)}"
+def sdo_reqest_post(number, answer="ddfdfdfdf", q_number=q_number, cmid=cmid, attempt=attempt, sesskey=sesskey, fack_number=0):
+    url = f"https://sdo24.1580.ru/mod/quiz/processattempt.php?cmid={cmid}&{q_number}:{str(number)}_:flagged=0&{q_number}:{str(number)}_:sequencecheck={fack_number}&{q_number}:{str(number)}_answer={answer}&{q_number}:{str(number)}_-submit=1&attempt={attempt}&thispage={str(int(number)-1)}&nextpage={str(number)}&timeup=0&sesskey={sesskey}&mdlscrollto=619&slots={str(number)}"
 
-    headers = {
-        "Content-Type": "application/json",
-        "Cookie": cookie
-    }
-
-    response = requests.post(url, headers=headers)
+    response = session.post(url)
 
     if response.status_code == 200:
-        return str(response) 
+        return str(response.text) 
     else:
         print(f"Ошибка SDO: {response.status_code}" )
+        print(response.text)
         return None
     
 
 #####################################################################################################################################333
 
+# def parse_problem_statement(html_content):
+#     soup = BeautifulSoup(html_content, 'html.parser')
+    
+#     content_div = soup.find('div', class_='content')
+    
+#     if content_div:
+#         problem_text = []
+#         for element in content_div.find_all(['p', 'div']):
+#             if element.name == 'p':
+#                 problem_text.append(element.get_text(strip=True))
+#             elif element.name == 'div':
+#                 problem_text.append(element.get_text(strip=True, separator='\n'))
+        
+#         problem_statement = '\n'.join(problem_text)
+        
+#         return problem_statement
+#     else:
+#         return "Условие задачи не найдено."
+
 def parse_problem_statement(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
+    problem_statement = "Error parse"
     
-    content_div = soup.find('div', class_='content')
+    try:
+        for script in soup(["script", "style"]):
+            script.decompose()
+        
+        text = soup.get_text(separator='\n', strip=True)
+        
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        
+        problem_statement = '\n'.join(lines)
+    except:
+        print("Err on parse")
     
-    if content_div:
-        problem_text = []
-        for element in content_div.find_all(['p', 'div']):
-            if element.name == 'p':
-                problem_text.append(element.get_text(strip=True))
-            elif element.name == 'div':
-                problem_text.append(element.get_text(strip=True, separator='\n'))
-        
-        problem_statement = '\n'.join(problem_text)
-        
-        return problem_statement
-    else:
-        return "Условие задачи не найдено."
+    return problem_statement
 
-# Пример использования функции
+
 if __name__ == "__main__":
-    message = "привет какая ты версия чата gpt "
-    # Отправка запроса
-    response = gpt_reqest(message)
+    response = sdo_reqest_post(2, fack_number=7)
+    print(response)
+    question = parse_problem_statement(response)
+    gpt_response = gpt_reqest(prompt + "Само условие: " + question)
 
-    # Вывод ответа
-    if response:
-        print(response)
-        #print(json.dumps(response, indent=2))
+    if gpt_response:
+        print(gpt_response)
+        print(json.dumps(response, indent=2))
+        answer = sdo_reqest_post(2, fack_number=7, answer=gpt_response)
